@@ -5,8 +5,7 @@ on:
       - main
     # Trigger on version tags
     tags:
-      - 'v[0-9]+\.[0-9]+\.[0-9]+'
-      - 'v[0-9]+\.[0-9]+\.[0-9]+-rc(?:[0-9]+|\.[0-9]+)'
+      - 'v*'
   pull_request:
   merge_group:
   workflow_dispatch:

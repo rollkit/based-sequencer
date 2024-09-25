@@ -27,7 +27,7 @@ updates:
         update-types:
           - "patch"
   - package-ecosystem: docker
-    directory: "/docker"
+    directory: "/"
     schedule:
       interval: daily
     open-pull-requests-limit: 10

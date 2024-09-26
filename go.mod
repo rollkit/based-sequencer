@@ -4,7 +4,7 @@ go 1.23.1
 
 require (
 	github.com/rollkit/go-da v0.7.0
-	github.com/rollkit/go-sequencing v0.0.0-20240924073851-5e3b8522a072
+	github.com/rollkit/go-sequencing v0.1.0
 )
 
 require (

@@ -38,8 +38,8 @@ func NewSequencer(da da.DA) *BasedSequencer {
 var _ sequencing.Sequencer = (*BasedSequencer)(nil)
 
 // SubmitRollupTransaction submits a transaction directly to DA, as a single blob.
-func (b *BasedSequencer) SubmitRollupTransaction(ctx context.Context, rollupId sequencing.RollupId, tx sequencing.Tx) error {
-	_, err := b.da.Submit(ctx, []da.Blob{tx}, 0, rollupId)
+func (seq *BasedSequencer) SubmitRollupTransaction(ctx context.Context, rollupId sequencing.RollupId, tx sequencing.Tx) error {
+	_, err := seq.da.Submit(ctx, []da.Blob{tx}, 0, rollupId)
 	if err != nil {
 		return err
 	}
@@ -47,15 +47,15 @@ func (b *BasedSequencer) SubmitRollupTransaction(ctx context.Context, rollupId s
 }
 
 // GetNextBatch reads data from namespace in DA and builds transactions batches.
-func (b *BasedSequencer) GetNextBatch(ctx context.Context, lastBatchHash sequencing.Hash) (*sequencing.Batch, time.Time, error) {
+func (seq *BasedSequencer) GetNextBatch(ctx context.Context, lastBatchHash sequencing.Hash) (*sequencing.Batch, time.Time, error) {
 	// optimistic case - we already know the hash after lastBatchHash
-	nextBatchHash, err := b.store.GetNextHash(ctx, lastBatchHash)
+	nextBatchHash, err := seq.store.GetNextHash(ctx, lastBatchHash)
 	if err == nil {
-		height, err := b.store.GetHashMapping(ctx, nextBatchHash)
+		height, err := seq.store.GetHashMapping(ctx, nextBatchHash)
 		if err != nil {
 			return nil, time.Time{}, fmt.Errorf("store contents inconsistent: %w", err)
 		}
-		return b.getBatchByHeight(ctx, height)
+		return seq.getBatchByHeight(ctx, height)
 	}
 
 	// if there is no indexing information in store, it's not an error
@@ -65,7 +65,7 @@ func (b *BasedSequencer) GetNextBatch(ctx context.Context, lastBatchHash sequenc
 
 	// we need to search for next batch
 	for ctx.Err() == nil {
-		batch, ts, err := b.getBatchByHeight(ctx, b.daHeight.Load())
+		batch, ts, err := seq.getBatchByHeight(ctx, seq.daHeight.Load())
 		if err != nil {
 			if strings.Contains(err.Error(), "given height is from the future") {
 				time.Sleep(100 * time.Millisecond) // TODO(tzdybal): this needs to be configurable
@@ -79,13 +79,13 @@ func (b *BasedSequencer) GetNextBatch(ctx context.Context, lastBatchHash sequenc
 		if err != nil {
 			return nil, time.Time{}, err
 		}
-		if err = b.store.SetNextHash(ctx, lastBatchHash, hash); err != nil {
+		if err = seq.store.SetNextHash(ctx, lastBatchHash, hash); err != nil {
 			return nil, time.Time{}, err
 		}
-		if err = b.store.SetHashMapping(ctx, hash, b.daHeight.Load()); err != nil {
+		if err = seq.store.SetHashMapping(ctx, hash, seq.daHeight.Load()); err != nil {
 			return nil, time.Time{}, err
 		}
-		b.daHeight.Add(1)
+		seq.daHeight.Add(1)
 		return batch, ts, err
 	}
 
@@ -93,7 +93,7 @@ func (b *BasedSequencer) GetNextBatch(ctx context.Context, lastBatchHash sequenc
 }
 
 // VerifyBatch ensures data-availability of a batch in DA.
-func (b *BasedSequencer) VerifyBatch(ctx context.Context, batchHash sequencing.Hash) (bool, error) {
+func (seq *BasedSequencer) VerifyBatch(ctx context.Context, batchHash sequencing.Hash) (bool, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -107,15 +107,15 @@ func BatchHash(batch *sequencing.Batch) (sequencing.Hash, error) {
 	return h[:], nil
 }
 
-func (b *BasedSequencer) getBatchByHeight(ctx context.Context, height uint64) (*sequencing.Batch, time.Time, error) {
+func (seq *BasedSequencer) getBatchByHeight(ctx context.Context, height uint64) (*sequencing.Batch, time.Time, error) {
 	// TODO(tzdybal): this needs to be a field
 	namespace := []byte("test namespace")
-	result, err := b.da.GetIDs(ctx, height, namespace)
+	result, err := seq.da.GetIDs(ctx, height, namespace)
 	if err != nil {
 		return nil, time.Time{}, err
 	}
 
-	blobs, err := b.da.Get(ctx, result.IDs, namespace)
+	blobs, err := seq.da.Get(ctx, result.IDs, namespace)
 	if err != nil {
 		return nil, time.Time{}, err
 	}

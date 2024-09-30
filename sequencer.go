@@ -2,6 +2,7 @@ package based_sequencer
 
 import (
 	"context"
+	"crypto/sha256"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -70,4 +71,13 @@ func (b *BasedSequencer) GetNextBatch(ctx context.Context, lastBatchHash sequenc
 func (b *BasedSequencer) VerifyBatch(ctx context.Context, batchHash sequencing.Hash) (bool, error) {
 	//TODO implement me
 	panic("implement me")
+}
+
+func BatchHash(batch *sequencing.Batch) (sequencing.Hash, error) {
+	batchBytes, err := batch.Marshal()
+	if err != nil {
+		return nil, err
+	}
+	h := sha256.Sum256(batchBytes)
+	return h[:], nil
 }

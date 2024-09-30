@@ -95,14 +95,17 @@ func TestGetNextBatch(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	t.Cleanup(cancel)
 
+	var lastBatchHash sequencing.Hash
 	for i := 0; i < len(batchIds); i++ {
-		batch, ts, err := seq.GetNextBatch(ctx, nil)
+		batch, ts, err := seq.GetNextBatch(ctx, lastBatchHash)
 		require.NoError(t, err)
 		require.NotNil(t, batch)
 		require.NotEmpty(t, ts)
 		require.NoError(t, err)
 		expected := makeBatch(batchIds[i])
 		require.Equal(t, expected, batch.Transactions)
+		lastBatchHash, err = BatchHash(batch)
+		require.NoError(t, err)
 	}
 
 	mockDA.AssertExpectations(t)

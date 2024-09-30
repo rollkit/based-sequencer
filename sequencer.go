@@ -25,14 +25,28 @@ var _ sequencing.Sequencer = (*BasedSequencer)(nil)
 
 // SubmitRollupTransaction submits a transaction directly to DA, as a single blob.
 func (b *BasedSequencer) SubmitRollupTransaction(ctx context.Context, rollupId sequencing.RollupId, tx sequencing.Tx) error {
-	//TODO implement me
-	panic("implement me")
+	_, err := b.da.Submit(ctx, []da.Blob{tx}, 0, rollupId)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // GetNextBatch reads data from namespace in DA and builds transactions batches.
 func (b *BasedSequencer) GetNextBatch(ctx context.Context, lastBatchHash sequencing.Hash) (*sequencing.Batch, time.Time, error) {
-	//TODO implement me
-	panic("implement me")
+	// TODO(tzdybal): this needs to be a field
+	lastHeight := uint64(1)
+	namespace := []byte("test namespace")
+	result, err := b.da.GetIDs(ctx, lastHeight, namespace)
+	if err != nil {
+		return nil, time.Time{}, err
+	}
+	blobs, err := b.da.Get(ctx, result.IDs, namespace)
+	if err != nil {
+		return nil, time.Time{}, err
+	}
+
+	return &sequencing.Batch{Transactions: blobs}, result.Timestamp, nil
 }
 
 // VerifyBatch ensures data-availability of a batch in DA.

@@ -49,39 +49,45 @@ func TestSubmitRollupTransaction(t *testing.T) {
 func TestGetNextBatch(t *testing.T) {
 	var (
 		testNamespace = []byte("test namespace")
-		//blockTime     = 1 * time.Second
+		blockTime     = 1 * time.Second
 	)
 
 	mockDA := mocks.NewMockDA(t)
 
 	// sequencer needs to ask about MaxBytes
-	mockDA.On("MaxBlobSize", mock.Anything).Return(int64(1000), nil)
+	//mockDA.On("MaxBlobSize", mock.Anything).Return(int64(1000), nil)
 	// some IDs are returned, so mocked blobs can be easily handled
-	mockDA.On("GetIDs", mock.Anything, uint64(1), testNamespace).Return(&da.GetIDsResult{
-		IDs:       []da.ID{{1}, {2}, {3}},
-		Timestamp: time.Now(),
-	}, nil).Once()
-	//mockDA.On("GetIDs", mock.Anything, uint64(2), testNamespace).Return(da.GetIDsResult{
-	//	IDs:       []da.ID{{4}, {4}},
-	//	Timestamp: time.Now().Add(blockTime),
-	//}, nil).Once()
-	//mockDA.On("GetIDs", mock.Anything, uint64(3), testNamespace).Return(da.GetIDsResult{
-	//	IDs:       []da.ID{{6}, {7}, {8}, {9}},
-	//	Timestamp: time.Now().Add(2 * blockTime),
-	//}, nil).Once()
+	batchIds := [][]da.ID{
+		{{1}, {2}, {3}},
+		{{4}, {4}},
+		{{6}, {7}, {8}, {9}},
+	}
+
+	ts := time.Now()
+	for i := range batchIds {
+		mockDA.On("GetIDs", mock.Anything, uint64(i+1), testNamespace).Return(&da.GetIDsResult{
+			IDs:       batchIds[i],
+			Timestamp: ts,
+		}, nil).Once()
+		ts = ts.Add(blockTime)
+	}
+	// handle other requests, as GetNextBatch might iterate
+	mockDA.On("GetIDs", mock.Anything, mock.Anything, testNamespace).Return(&da.GetIDsResult{Timestamp: time.Now()})
 
 	transactions := make([][]byte, 10)
 	for i := 0; i < len(transactions); i++ {
 		transactions[i] = []byte(fmt.Sprintf("transaction %d", i))
 	}
-	mockDA.On("Get", mock.Anything, mock.Anything, testNamespace).Return(
-		func(ctx context.Context, ids []da.ID, namespace da.Namespace) ([]da.Blob, error) {
-			blobs := make([]da.Blob, len(ids))
-			for i := range ids {
-				blobs[i] = transactions[i]
-			}
-			return blobs, nil
-		})
+	makeBatch := func(ids []da.ID) []da.Blob {
+		blobs := make([]da.Blob, len(ids))
+		for i := range ids {
+			blobs[i] = transactions[i]
+		}
+		return blobs
+	}
+	mockDA.On("Get", mock.Anything, mock.Anything, testNamespace).Return(func(_ context.Context, ids []da.ID, _ da.Namespace) ([]da.Blob, error) {
+		return makeBatch(ids), nil
+	})
 
 	seq := NewSequencer(mockDA)
 	require.NotNil(t, seq)
@@ -89,10 +95,15 @@ func TestGetNextBatch(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	t.Cleanup(cancel)
 
-	batch, ts, err := seq.GetNextBatch(ctx, nil)
-	require.NoError(t, err)
-	require.NotNil(t, batch)
-	require.NotEmpty(t, ts)
+	for i := 0; i < len(batchIds); i++ {
+		batch, ts, err := seq.GetNextBatch(ctx, nil)
+		require.NoError(t, err)
+		require.NotNil(t, batch)
+		require.NotEmpty(t, ts)
+		require.NoError(t, err)
+		expected := makeBatch(batchIds[i])
+		require.Equal(t, expected, batch.Transactions)
+	}
 
 	mockDA.AssertExpectations(t)
 }

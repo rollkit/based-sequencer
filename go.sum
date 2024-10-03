@@ -19,6 +19,10 @@ github.com/rollkit/go-da v0.7.1-0.20240927084534-0289b27dbd20 h1:MkNGLP+SIC4MiA0
 github.com/rollkit/go-da v0.7.1-0.20240927084534-0289b27dbd20/go.mod h1:3eHWK5gkv8lhwq6bjOZOi82WwHyS2B9rQOlUrE1GGws=
 github.com/rollkit/go-sequencing v0.0.0-20240924073851-5e3b8522a072 h1:ryzQ53hpEZ/tzsweDkEFUP3ovFcmi0IBye4JhCNIs+8=
 github.com/rollkit/go-sequencing v0.0.0-20240924073851-5e3b8522a072/go.mod h1:s/3XzHYeY+bximgM8PDdQmoe9aWBSOa4NDQmBxpMJ4A=
+github.com/rollkit/go-sequencing v0.1.0 h1:LL6QT5pekydPLxeU8ncRoRlkdbJpM8fcsu+Uw15H4sE=
+github.com/rollkit/go-sequencing v0.1.0/go.mod h1:s/3XzHYeY+bximgM8PDdQmoe9aWBSOa4NDQmBxpMJ4A=
+github.com/rollkit/go-sequencing v0.2.0 h1:IrEA29p07zPDbqY29AzI+q2zUqm7QACAoR+/PBpexvw=
+github.com/rollkit/go-sequencing v0.2.0/go.mod h1:P/cQXTw3rWpPqhqnCwKzlkS39XM8ugmyf2u63twBgG8=
 github.com/stretchr/objx v0.5.2 h1:xuMeJ0Sdp5ZMRXx/aWO6RZxdr3beISkG5/G/aIRr3pY=
 github.com/stretchr/objx v0.5.2/go.mod h1:FRsXN1f5AsAjCGJKqEizvkpNtU+EGNCLh3NxZ/8L+MA=
 github.com/stretchr/testify v1.9.0 h1:HtqpIVDClZ4nwg75+f6Lvsy/wHu+3BoSGCbBAcpTsTg=
@@ -33,6 +37,8 @@ google.golang.org/genproto/googleapis/rpc v0.0.0-20240827150818-7e3bb234dfed h1:
 google.golang.org/genproto/googleapis/rpc v0.0.0-20240827150818-7e3bb234dfed/go.mod h1:UqMtugtsSgubUsoxbuAoiCXvqvErP7Gf0so0mK9tHxU=
 google.golang.org/grpc v1.67.0 h1:IdH9y6PF5MPSdAntIcpjQ+tXO41pcQsfZV2RxtQgVcw=
 google.golang.org/grpc v1.67.0/go.mod h1:1gLDyUQU7CTLJI90u3nXZ9ekeghjeM7pTDZlqFNg2AA=
+google.golang.org/grpc v1.67.1 h1:zWnc1Vrcno+lHZCOofnIMvycFcc0QRGIzm9dhnDX68E=
+google.golang.org/grpc v1.67.1/go.mod h1:1gLDyUQU7CTLJI90u3nXZ9ekeghjeM7pTDZlqFNg2AA=
 google.golang.org/protobuf v1.34.2 h1:6xV6lTsCfpGD21XK49h7MhtcApnLqkfYgPcdHftf6hg=
 google.golang.org/protobuf v1.34.2/go.mod h1:qYOHts0dSfpeUzUFpOMr/WGzszTmLH+DiWniOlNbLDw=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=

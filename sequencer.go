@@ -2,7 +2,6 @@ package based_sequencer
 
 import (
 	"context"
-	"crypto/sha256"
 	"errors"
 	"fmt"
 	"strings"
@@ -38,87 +37,78 @@ func NewSequencer(da da.DA) *BasedSequencer {
 var _ sequencing.Sequencer = (*BasedSequencer)(nil)
 
 // SubmitRollupTransaction submits a transaction directly to DA, as a single blob.
-func (seq *BasedSequencer) SubmitRollupTransaction(ctx context.Context, rollupId sequencing.RollupId, tx sequencing.Tx) error {
-	_, err := seq.da.Submit(ctx, []da.Blob{tx}, 0, rollupId)
+func (seq *BasedSequencer) SubmitRollupTransaction(ctx context.Context, req sequencing.SubmitRollupTransactionRequest) (*sequencing.SubmitRollupTransactionResponse, error) {
+	_, err := seq.da.Submit(ctx, []da.Blob{req.Tx}, 0, req.RollupId)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return &sequencing.SubmitRollupTransactionResponse{}, nil
 }
 
 // GetNextBatch reads data from namespace in DA and builds transactions batches.
-func (seq *BasedSequencer) GetNextBatch(ctx context.Context, lastBatchHash sequencing.Hash) (*sequencing.Batch, time.Time, error) {
+func (seq *BasedSequencer) GetNextBatch(ctx context.Context, req sequencing.GetNextBatchRequest) (*sequencing.GetNextBatchResponse, error) {
 	// optimistic case - we already know the hash after lastBatchHash
-	nextBatchHash, err := seq.store.GetNextHash(ctx, lastBatchHash)
+	nextBatchHash, err := seq.store.GetNextHash(ctx, req.LastBatchHash)
 	if err == nil {
 		height, err := seq.store.GetHashMapping(ctx, nextBatchHash)
 		if err != nil {
-			return nil, time.Time{}, fmt.Errorf("store contents inconsistent: %w", err)
+			return nil, fmt.Errorf("store contents inconsistent: %w", err)
 		}
 		return seq.getBatchByHeight(ctx, height)
 	}
 
 	// if there is no indexing information in store, it's not an error
 	if !errors.Is(err, ds.ErrNotFound) {
-		return nil, time.Time{}, err
+		return nil, err
 	}
 
 	// we need to search for next batch
 	for ctx.Err() == nil {
-		batch, ts, err := seq.getBatchByHeight(ctx, seq.daHeight.Load())
+		resp, err := seq.getBatchByHeight(ctx, seq.daHeight.Load())
 		if err != nil {
 			if strings.Contains(err.Error(), "given height is from the future") {
 				time.Sleep(100 * time.Millisecond) // TODO(tzdybal): this needs to be configurable
 				continue
 			}
-			return nil, time.Time{}, err
+			return nil, err
 		}
 
 		// TODO(tzdybal): extract method
-		hash, err := BatchHash(batch)
+		hash, err := resp.Batch.Hash()
 		if err != nil {
-			return nil, time.Time{}, err
+			return nil, err
 		}
-		if err = seq.store.SetNextHash(ctx, lastBatchHash, hash); err != nil {
-			return nil, time.Time{}, err
+		if err = seq.store.SetNextHash(ctx, req.LastBatchHash, hash); err != nil {
+			return nil, err
 		}
 		if err = seq.store.SetHashMapping(ctx, hash, seq.daHeight.Load()); err != nil {
-			return nil, time.Time{}, err
+			return nil, err
 		}
 		seq.daHeight.Add(1)
-		return batch, ts, err
+		return resp, err
 	}
 
-	return nil, time.Time{}, ctx.Err()
+	return nil, ctx.Err()
 }
 
 // VerifyBatch ensures data-availability of a batch in DA.
-func (seq *BasedSequencer) VerifyBatch(ctx context.Context, batchHash sequencing.Hash) (bool, error) {
+func (seq *BasedSequencer) VerifyBatch(ctx context.Context, req sequencing.VerifyBatchRequest) (*sequencing.VerifyBatchResponse, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func BatchHash(batch *sequencing.Batch) (sequencing.Hash, error) {
-	batchBytes, err := batch.Marshal()
-	if err != nil {
-		return nil, err
-	}
-	h := sha256.Sum256(batchBytes)
-	return h[:], nil
-}
-
-func (seq *BasedSequencer) getBatchByHeight(ctx context.Context, height uint64) (*sequencing.Batch, time.Time, error) {
+func (seq *BasedSequencer) getBatchByHeight(ctx context.Context, height uint64) (*sequencing.GetNextBatchResponse, error) {
 	// TODO(tzdybal): this needs to be a field
 	namespace := []byte("test namespace")
 	result, err := seq.da.GetIDs(ctx, height, namespace)
 	if err != nil {
-		return nil, time.Time{}, err
+		return nil, err
 	}
 
 	blobs, err := seq.da.Get(ctx, result.IDs, namespace)
 	if err != nil {
-		return nil, time.Time{}, err
+		return nil, err
 	}
 
-	return &sequencing.Batch{Transactions: blobs}, result.Timestamp, nil
+	return &sequencing.GetNextBatchResponse{Batch: &sequencing.Batch{Transactions: blobs}, Timestamp: result.Timestamp}, nil
 }

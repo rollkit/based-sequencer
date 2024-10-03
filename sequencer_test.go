@@ -40,8 +40,10 @@ func TestSubmitRollupTransaction(t *testing.T) {
 		require.Contains(t, string(blobs[0]), testTx)
 	}).Return(nil, nil).Once()
 
-	err := seq.SubmitRollupTransaction(context.Background(), sequencing.RollupId(rollupId), sequencing.Tx(testTx))
+	resp, err := seq.SubmitRollupTransaction(context.Background(),
+		sequencing.SubmitRollupTransactionRequest{RollupId: sequencing.RollupId(rollupId), Tx: sequencing.Tx(testTx)})
 	require.NoError(t, err)
+	require.NotNil(t, resp)
 
 	mockDA.AssertExpectations(t)
 }
@@ -97,14 +99,14 @@ func TestGetNextBatch(t *testing.T) {
 
 	var lastBatchHash sequencing.Hash
 	for i := 0; i < len(batchIds); i++ {
-		batch, ts, err := seq.GetNextBatch(ctx, lastBatchHash)
+		resp, err := seq.GetNextBatch(ctx, sequencing.GetNextBatchRequest{LastBatchHash: lastBatchHash})
 		require.NoError(t, err)
-		require.NotNil(t, batch)
+		require.NotNil(t, resp)
 		require.NotEmpty(t, ts)
 		require.NoError(t, err)
 		expected := makeBatch(batchIds[i])
-		require.Equal(t, expected, batch.Transactions)
-		lastBatchHash, err = BatchHash(batch)
+		require.Equal(t, expected, resp.Batch.Transactions)
+		lastBatchHash, err = resp.Batch.Hash()
 		require.NoError(t, err)
 	}
 

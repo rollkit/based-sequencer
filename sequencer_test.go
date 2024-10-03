@@ -16,14 +16,16 @@ import (
 
 func TestNewSequencer(t *testing.T) {
 	mockDA := mocks.NewMockDA(t)
-	seq := NewSequencer(mockDA)
+	seq, err := NewSequencer(mockDA)
+	require.NoError(t, err)
 	require.NotNil(t, seq)
 }
 
 // TestSubmitRollupTransaction ensures that single rollup transaction submitted to sequencer is submitted as one blob to DA.
 func TestSubmitRollupTransaction(t *testing.T) {
 	mockDA := mocks.NewMockDA(t)
-	seq := NewSequencer(mockDA)
+	seq, err := NewSequencer(mockDA)
+	require.NoError(t, err)
 	require.NotNil(t, seq)
 
 	const (
@@ -91,7 +93,8 @@ func TestGetNextBatch(t *testing.T) {
 		return makeBatch(ids), nil
 	})
 
-	seq := NewSequencer(mockDA)
+	seq, err := NewSequencer(mockDA)
+	require.NoError(t, err)
 	require.NotNil(t, seq)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)

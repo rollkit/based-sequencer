@@ -27,11 +27,15 @@ type BasedSequencer struct {
 }
 
 // NewSequencer initializes a BasedSequencer with the provided DA implementation.
-func NewSequencer(da da.DA) *BasedSequencer {
+func NewSequencer(da da.DA) (*BasedSequencer, error) {
 	seq := &BasedSequencer{da: da}
-	seq.daHeight.Store(1)  // TODO(tzdybal): this needs to be config or constructor param
-	seq.store = &KVStore{} // TODO(tzdybal): extract parameter
-	return seq
+	seq.daHeight.Store(1) // TODO(tzdybal): this needs to be config or constructor param
+	inMem, err := NewInMemoryStore()
+	if err != nil {
+		return nil, err
+	}
+	seq.store = NewStore(inMem) // TODO(tzdybal): extract parameter
+	return seq, nil
 }
 
 var _ sequencing.Sequencer = (*BasedSequencer)(nil)

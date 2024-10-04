@@ -4,11 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/dgraph-io/badger/v4"
 	"strings"
 	"sync/atomic"
 	"time"
-
-	ds "github.com/ipfs/go-datastore"
 
 	"github.com/rollkit/go-da"
 	"github.com/rollkit/go-sequencing"
@@ -56,13 +55,13 @@ func (seq *BasedSequencer) GetNextBatch(ctx context.Context, req sequencing.GetN
 	if err == nil {
 		height, err := seq.store.GetHashMapping(ctx, nextBatchHash)
 		if err != nil {
-			return nil, fmt.Errorf("store contents inconsistent: %w", err)
+			return nil, fmt.Errorf("kv contents inconsistent: %w", err)
 		}
 		return seq.getBatchByHeight(ctx, height)
 	}
 
-	// if there is no indexing information in store, it's not an error
-	if !errors.Is(err, ds.ErrNotFound) {
+	// if there is no indexing information in kv, it's not an error
+	if !errors.Is(err, badger.ErrKeyNotFound) {
 		return nil, err
 	}
 
